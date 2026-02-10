@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>安全情报分析助手</title>
+<style>
+  :root {
+    --bg-primary: #0a0e17;
+    --bg-secondary: #111827;
+    --bg-card: #1a2234;
+    --bg-input: #0f1623;
+    --border: #1e2d45;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --accent-glow: rgba(59,130,246,0.25);
+    --text-primary: #e2e8f0;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --success: #10b981;
+    --info: #06b6d4;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .header-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .header-title { font-size: 16px; font-weight: 600; }
+  .header-sub { font-size: 12px; color: var(--text-muted); }
+  .header-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--success);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  .status-text { font-size: 12px; color: var(--text-muted); }
+  .btn-clear {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s;
+  }
+  .btn-clear:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* Main layout */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    background: var(--bg-secondary);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow-y: auto;
+    flex-shrink: 0;
+  }
+  .sidebar-title {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+  }
+  .quick-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    text-align: left;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .quick-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+    background: rgba(59,130,246,0.08);
+  }
+  .quick-btn .icon { font-size: 16px; flex-shrink: 0; }
+
+  /* Chat area */
+  .chat-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    scroll-behavior: smooth;
+  }
+  .messages::-webkit-scrollbar { width: 6px; }
+  .messages::-webkit-scrollbar-track { background: transparent; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .msg {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.7;
+    word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .msg-user {
+    align-self: flex-end;
+    background: var(--accent);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .msg-assistant {
+    align-self: flex-start;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-assistant .label {
+    font-size: 11px;
+    color: var(--accent);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  /* Welcome */
+  .welcome {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    color: var(--text-muted);
+    padding: 40px;
+    text-align: center;
+  }
+  .welcome-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: 20px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 30px;
+  }
+  .welcome h2 { color: var(--text-primary); font-size: 20px; }
+  .welcome p { font-size: 14px; max-width: 400px; }
+
+  /* Input area */
+  .input-area {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+    flex-shrink: 0;
+  }
+  .input-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .input-box {
+    flex: 1;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    min-height: 44px;
+    max-height: 160px;
+    outline: none;
+    transition: border-color 0.2s;
+    line-height: 1.5;
+  }
+  .input-box:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
+  .input-box::placeholder { color: var(--text-muted); }
+  .btn-send {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .btn-send:hover { background: var(--accent-hover); }
+  .btn-send:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-send svg { width: 20px; height: 20px; }
+  .input-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+
+  /* Loading */
+  .typing-indicator {
+    display: flex; gap: 4px; padding: 8px 0;
+  }
+  .typing-indicator span {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-muted);
+    animation: blink 1.4s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink {
+    0%, 60%, 100% { opacity: 0.2; }
+    30% { opacity: 1; }
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .msg { max-width: 95%; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🛡</div>
+  <div>
+    <div class="header-title">安全情报分析助手</div>
+    <div class="header-sub">Security Intelligence Analyst Agent</div>
+  </div>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="status-text">在线</span>
+    <button class="btn-clear" onclick="clearChat()">清空对话</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="sidebar">
+    <div class="sidebar-title">快捷指令</div>
+    <button class="quick-btn" onclick="send('提取以下文本中的IOC指标：\n检测到来自 45.33.32.156 和 185.220.101.34 的恶意流量，目标域名为 evil-c2.xyz，关联样本哈希 d41d8cd98f00b204e9800998ecf8427e，相关漏洞 CVE-2024-21762')">
+      <span class="icon">🔍</span> IOC 提取示例
+    </button>
+    <button class="quick-btn" onclick="send('分析以下安全日志：\n2024-01-15 03:21:45 sshd failed login root from 192.168.1.100 port 22\n2024-01-15 03:21:46 sshd failed login root from 192.168.1.100 port 22\n2024-01-15 03:21:47 sshd failed login admin from 192.168.1.100 port 22\n2024-01-15 03:22:01 sshd failed login root from 192.168.1.100 port 22\n2024-01-15 03:22:15 cmd.exe /c whoami\n2024-01-15 03:22:30 powershell -enc aWVy...\n2024-01-15 03:23:00 psexec \\\\10.0.0.5 cmd')">
+      <span class="icon">📋</span> 日志分析示例
+    </button>
+    <button class="quick-btn" onclick="send('对以下威胁事件进行 MITRE ATT&CK 分类：\n攻击者通过钓鱼邮件投递含有恶意宏的 Word 文档，用户点击后触发 PowerShell 下载器，从 C2 服务器拉取 Cobalt Strike beacon，随后使用 mimikatz 抓取凭证，通过 psexec 进行横向移动，最终部署勒索软件加密关键数据。')">
+      <span class="icon">⚔️</span> 威胁分类示例
+    </button>
+    <button class="quick-btn" onclick="send('请帮我分析一下 Log4Shell (CVE-2021-44228) 漏洞的影响范围和缓解措施')">
+      <span class="icon">🐛</span> 漏洞分析咨询
+    </button>
+    <button class="quick-btn" onclick="send('我们的 IDS 检测到内网一台主机频繁向外部 IP 发送大量 DNS 请求，疑似 DNS 隧道外传数据，请帮我分析处置方案')">
+      <span class="icon">🚨</span> 应急响应咨询
+    </button>
+    <button class="quick-btn" onclick="send('请介绍一下你的分析能力和可以使用的工具')">
+      <span class="icon">ℹ️</span> 查看能力介绍
+    </button>
+  </div>
+
+  <div class="chat-area">
+    <div class="messages" id="messages">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🛡</div>
+        <h2>安全情报分析助手</h2>
+        <p>我是一位专业的网络安全分析师 Agent，可以帮你提取 IOC、分析日志、分类威胁、解读情报报告，并提供应急响应建议。</p>
+        <p style="font-size:12px">在左侧选择快捷指令，或直接输入你的安全分析需求</p>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea class="input-box" id="input" placeholder="输入安全分析需求…" rows="1"
+          onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+        <button class="btn-send" id="sendBtn" onclick="sendFromInput()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 2L11 13"></path><path d="M22 2L15 22L11 13L2 9L22 2Z"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter 发送 · Shift+Enter 换行</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const messagesEl = document.getElementById('messages');
+const inputEl = document.getElementById('input');
+const sendBtn = document.getElementById('sendBtn');
+const welcomeEl = document.getElementById('welcome');
+let isStreaming = false;
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 160) + 'px';
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendFromInput();
+  }
+}
+
+function sendFromInput() {
+  const text = inputEl.value.trim();
+  if (!text || isStreaming) return;
+  inputEl.value = '';
+  inputEl.style.height = 'auto';
+  send(text);
+}
+
+function addMessage(role, content) {
+  if (welcomeEl) welcomeEl.style.display = 'none';
+  const div = document.createElement('div');
+  div.className = `msg msg-${role}`;
+  if (role === 'assistant') {
+    div.innerHTML = `<div class="label">🛡 安全分析师</div><span class="content"></span>`;
+    div.querySelector('.content').textContent = content;
+  } else {
+    div.textContent = content;
+  }
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return div;
+}
+
+function addTypingIndicator() {
+  const div = document.createElement('div');
+  div.className = 'msg msg-assistant';
+  div.id = 'typing';
+  div.innerHTML = `<div class="label">🛡 安全分析师</div><div class="typing-indicator"><span></span><span></span><span></span></div>`;
+  messagesEl.appendChild(div);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+function removeTypingIndicator() {
+  const el = document.getElementById('typing');
+  if (el) el.remove();
+}
+
+async function send(text) {
+  if (isStreaming) return;
+  isStreaming = true;
+  sendBtn.disabled = true;
+  addMessage('user', text);
+  addTypingIndicator();
+
+  try {
+    const resp = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text }),
+    });
+
+    removeTypingIndicator();
+
+    if (!resp.ok) {
+      addMessage('assistant', `错误: ${resp.status} ${resp.statusText}`);
+      return;
+    }
+
+    const reader = resp.body.getReader();
+    const decoder = new TextDecoder();
+    const msgDiv = addMessage('assistant', '');
+    const contentSpan = msgDiv.querySelector('.content');
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      fullText += chunk;
+      contentSpan.textContent = fullText;
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    if (!fullText) contentSpan.textContent = '（无响应内容）';
+  } catch (err) {
+    removeTypingIndicator();
+    addMessage('assistant', `请求失败: ${err.message}`);
+  } finally {
+    isStreaming = false;
+    sendBtn.disabled = false;
+    inputEl.focus();
+  }
+}
+
+function clearChat() {
+  fetch('/api/reset', { method: 'POST' });
+  messagesEl.innerHTML = '';
+  if (welcomeEl) {
+    messagesEl.appendChild(welcomeEl);
+    welcomeEl.style.display = '';
+  }
+}
+</script>
+</body>
+</html>
